@@ -22,28 +22,20 @@ public class Security {
     @Bean
     public SecurityFilterChain config(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(auth ->
-                        auth
-                                .anyRequest()
-                                .authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/anonymous").hasRole("GUEST")
+                        .requestMatchers("/authenticationContext", "/authentication").permitAll()
+                        .anyRequest()
+                        .authenticated()
                 )
-                .formLogin(form ->
-                        form
-                                .loginProcessingUrl("/loginProc")
-                                .defaultSuccessUrl("/")
-                                .failureUrl("/failed")
-                                .usernameParameter("userId")
-                                .passwordParameter("password")
-                                .successHandler(((request, response, authentication) -> {
-                                    System.out.println("authentication: " + authentication);
-                                    response.sendRedirect("/home");
-                                }))
-                                .failureHandler(((request, response, exception) -> {
-                                    System.out.println("exception: " + exception.getMessage());
-                                    response.sendRedirect("/login");
-                                }))
-                                .permitAll()
-                );
+                .formLogin(Customizer.withDefaults())
+                // anonymousAuthenticationFilter까지 왔을때도 securityContext에 authentication 이 null이면
+                // anonymousAthentication token 부여
+                .anonymous(anonymous -> anonymous
+                        .principal("guest")
+                        .authorities("ROLE_GUEST")
+                )
+        ;
 
         return http.build();
     }
